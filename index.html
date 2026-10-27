@@ -1,3 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Кликер</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+    body {
+      margin: 0; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+      font-family: -apple-system, system-ui, sans-serif;
+      background: var(--tg-theme-bg-color, #ffffff);
+      color: var(--tg-theme-text-color, #111111);
+    }
+    #count { font-size: 72px; font-weight: 700; }
+    #record { opacity: .7; }
+    #tap {
+      width: 220px; height: 220px; border-radius: 50%; border: none;
+      font-size: 64px; cursor: pointer;
+      background: var(--tg-theme-button-color, #2481cc);
+      color: var(--tg-theme-button-text-color, #ffffff);
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      transition: transform .05s;
+    }
+    #tap:active { transform: scale(.93); }
+    .row { display: flex; gap: 12px; }
+    .btn {
+      padding: 12px 20px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer;
+      background: var(--tg-theme-secondary-bg-color, #eeeeee);
+      color: var(--tg-theme-text-color, #111111);
+    }
+    .btn.primary {
+      background: var(--tg-theme-button-color, #2481cc);
+      color: var(--tg-theme-button-text-color, #ffffff);
+    }
+  </style>
+</head>
+<body>
+  <div id="count">0</div>
+  <div id="record">Рекорд: 0</div>
+  <button id="tap">👆</button>
+  <div class="row">
+    <button class="btn" id="reset">Сброс</button>
+    <button class="btn primary" id="send">Отправить боту</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    let count = 0;
+    let record = 0;
+    const countEl = document.getElementById("count");
+    const recordEl = document.getElementById("record");
+
+    function render() {
+      countEl.textContent = count;
       recordEl.textContent = "Рекорд: " + record;
     }
 
@@ -10,4 +70,40 @@
     }
 
     function load(raw) {
-                                                                                        67,15         61%
+      try {
+        const s = JSON.parse(raw);
+        count = s.count || 0;
+        record = s.record || 0;
+      } catch (e) {}
+      render();
+    }
+
+    // Загрузка: сначала локально, затем из облака Telegram
+    try { load(localStorage.getItem("clicker")); } catch (e) {}
+    if (tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9")) {
+      tg.CloudStorage.getItem("clicker", (err, value) => {
+        if (!err && value) load(value);
+      });
+    }
+
+    document.getElementById("tap").addEventListener("click", () => {
+      count++;
+      if (count > record) record = count;
+      if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      render();
+      save();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      count = 0;
+      render();
+      save();
+    });
+
+    document.getElementById("send").addEventListener("click", () => {
+      // Отправляет данные боту и закрывает mini app
+      tg.sendData(JSON.stringify({ clicks: count }));
+    });
+  </script>
+</body>
+</html>
