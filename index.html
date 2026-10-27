@@ -1,0 +1,13 @@
+      recordEl.textContent = "Рекорд: " + record;
+    }
+
+    function save() {
+      const state = JSON.stringify({ count, record });
+      try { localStorage.setItem("clicker", state); } catch (e) {}
+      if (tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9")) {
+        tg.CloudStorage.setItem("clicker", state);
+      }
+    }
+
+    function load(raw) {
+                                                                                        67,15         61%
